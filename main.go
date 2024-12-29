@@ -9,102 +9,15 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/pelletier/go-toml/v2"
-)
-
-type (
-	Config struct {
-		Name string
-		Build BuildConfig
-		Run RunConfig
-		LibraryPath string
-		Libraries []Library
-	}
-
-	BuildConfig struct {
-		SourcePath string
-		BuildPath string
-		Compiler string
-		Linker string
-        IncludeSourceDirectory bool
-	}
-
-	RunConfig struct {
-		Arguments string
-	}
-
-	Output struct {
-		command string
-		path string
-		data string
-	}
 )
 
 const ConfigPath = "haul.toml"
-
-func default_string(a *string, b string) {
-	if *a == "" {
-		*a = b
-	}
-}
-
-func loadConfig() Config {
-	data, err := os.ReadFile(ConfigPath)
-	if err != nil {
-		panic(err)
-	}
-
-	var config Config
-
-	err = toml.Unmarshal(data, &config)
-	if err != nil {
-		panic(err)
-	}
-
-	default_string(&config.LibraryPath, "external")
-	default_string(&config.Build.SourcePath, "src")
-	default_string(&config.Build.BuildPath, "build")
-	
-	return config
-}
 
 const Prefix = "[Haul] "
 var PrefixColor = color.New(color.FgGreen, color.Bold)
 
 func PrefixPrint(s string, a ...any) {
 	PrefixColor.Printf(Prefix + s + "\n", a...)
-}
-
-
-func getFilesFromDir(path string) ([]string, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var paths []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			ext := filepath.Ext(entry.Name())
-			if ext == ".cpp" || ext == ".c" || ext == ".o" {
-				paths = append(paths, path + "/" + entry.Name())
-			}
-		}
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			dirPath := path + "/" + entry.Name()
-			newPaths, err := getFilesFromDir(dirPath)
-			if err != nil {
-				return nil, err
-			}
-
-			paths = append(paths, newPaths...)
-		}
-	}
-
-	return paths, nil
 }
 
 func compileFile(compilerPath string, includes []string, includeSourceDirectory bool, sourceDirectory string, objectDirectoryPath string, path string) Output {
