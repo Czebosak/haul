@@ -123,7 +123,7 @@ func installLibraries(config Config) {
 }
 
 func build() {
-	config := loadConfig()
+	config := LoadConfig()
 
 	installLibraries(config)
 
@@ -191,7 +191,7 @@ func build() {
 func run() {
 	build()
 
-	config := loadConfig()
+	config := LoadConfig()
 
 	command := exec.Command(filepath.Join(config.Build.BuildPath, config.Name))
 	command.Stdout = os.Stdout

@@ -39,7 +39,7 @@ func default_string(a *string, b string) {
 	}
 }
 
-func loadConfig() Config {
+func LoadConfig() Config {
 	data, err := os.ReadFile(ConfigPath)
 	if err != nil {
 		panic(err)
