@@ -37,12 +37,25 @@ func compileFile(compilerPath string, includes []string, includeSourceDirectory 
 
 	command := exec.Command(compilerPath, commandArgs...)
 	
-	stdout, _ := command.CombinedOutput()
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+
+	err := command.Run()
+
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() != 0 {
+				PrefixPrint("Failed to compile file %s", path)
+				os.Exit(1)
+			}
+		} else {
+			panic(err)
+		}
+	}
 
 	output := Output {
 		command: command.String(),
 		path: path,
-		data: string(stdout),
 	}
 
 	return output
@@ -69,7 +82,14 @@ func linkFiles(linkerPath string, includes []string, config Config, paths []stri
 	err := command.Run()
 
 	if err != nil {
-		panic(err)
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() != 0 {
+				PrefixPrint("Failed to link files")
+				os.Exit(1)
+			}
+		} else {
+			panic(err)
+		}
 	}
 
 	output := Output {
@@ -151,7 +171,6 @@ func build() {
 
 	for _, output := range outputs {
 		fmt.Println(output.command)
-		fmt.Print(output.data)
 	}
 
 	paths, err = getFilesFromDir(objectDirectoryPath)
