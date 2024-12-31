@@ -9,9 +9,9 @@ import (
 )
 
 type Library struct {
-	Source string
-	InstallCommand string
-	Include []string
+	Source string `toml:"source"`
+	InstallCommand string `toml:"install_command"`
+	Include []string `toml:"include"`
 }
 
 func (library Library) Name() string {

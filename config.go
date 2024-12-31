@@ -1,29 +1,33 @@
 package main
 
 import (
+	"errors"
+	"io"
 	"os"
+	"path/filepath"
+
 	"github.com/pelletier/go-toml/v2"
 )
 
 type (
 	Config struct {
-		Name string
-		Build BuildConfig
-		Run RunConfig
-		LibraryPath string
-		Libraries []Library
+		Name string `toml:"name" comment:"Name of the library"`
+		Build BuildConfig `toml:"build"`
+		Run RunConfig `toml:"run"`
+		LibraryPath string `toml:"library_path"`
+		Libraries []Library `toml:"libraries"`
 	}
 
 	BuildConfig struct {
-		SourcePath string
-		BuildPath string
-		Compiler string
-		Linker string
-        IncludeSourceDirectory bool
+		SourcePath string `toml:"source_path"`
+		BuildPath string `toml:"build_path"`
+		Compiler string `toml:"compiler"`
+		Linker string `toml:"linker"`
+        IncludeSourceDirectory bool `toml:"include_source_directory"`
 	}
 
 	RunConfig struct {
-		Arguments string
+		Arguments string `toml:"arguments"`
 	}
 
 	Output struct {
@@ -38,6 +42,16 @@ func default_string(a *string, b string) {
 		*a = b
 	}
 }
+
+var defaultConfig = Config {
+	Name: "example-project",
+	Build: BuildConfig {
+		Compiler: "g++",
+		Linker: "g++",
+	},
+}
+
+const ConfigPath = "haul.toml"
 
 func LoadConfig() Config {
 	data, err := os.ReadFile(ConfigPath)
@@ -55,6 +69,77 @@ func LoadConfig() Config {
 	default_string(&config.LibraryPath, "external")
 	default_string(&config.Build.SourcePath, "src")
 	default_string(&config.Build.BuildPath, "build")
-	
+
 	return config
+}
+
+func getDefaultConfigPath() (string, error) {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(userConfigDir, "haul", "default.toml"), nil
+}
+
+func createDefaultConfig() error {
+	configPath, err := getDefaultConfigPath()
+	if err != nil {
+		return err
+	}
+
+	data, err := toml.Marshal(defaultConfig)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(configPath)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+
+	f.Close()
+
+	return err
+}
+
+func GetOrCreateDefaultConfig() ([]byte, error) {
+	configPath, err := getDefaultConfigPath()
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(configPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			err = createDefaultConfig()
+			if err != nil {
+				return nil, err
+			}
+
+			f, err = os.Open(configPath)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

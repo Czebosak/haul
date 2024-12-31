@@ -9,9 +9,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/pelletier/go-toml/v2"
 )
-
-const ConfigPath = "haul.toml"
 
 const Prefix = "[Haul] "
 var PrefixColor = color.New(color.FgGreen, color.Bold)
@@ -114,10 +113,10 @@ func installLibraries(config Config) {
 	for _, library := range config.Libraries {
 		if !library.Installed(config.LibraryPath) {
 			PrefixPrint("Installing %s", library.Name())
-            err := library.Install(config.LibraryPath)
-            if err != nil {
-                panic(err)
-            }
+			err := library.Install(config.LibraryPath)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
@@ -210,8 +209,38 @@ func run() {
 	fmt.Print(output.data)
 }
 
-func init() {
-	if len(os.Args) > 2 {}
+func init_command() {
+	if len(os.Args) < 3 {
+		color.Red("Provide the name of the project.")
+		os.Exit(1)
+	}
+
+	data, err := GetOrCreateDefaultConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	var config Config
+	toml.Unmarshal(data, &config)
+
+	config.Name = os.Args[2]
+
+	data, err = toml.Marshal(config)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Create(ConfigPath)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = f.Write(data)
+	if err != nil {
+		panic(err)
+	}
+
+	f.Close()
 }
 
 func main() {
@@ -219,6 +248,7 @@ func main() {
 		switch os.Args[1] {
 		case "build": build()
 		case "run": run()
+		case "init": init_command()
 		}
 	}
 }
